@@ -111,6 +111,7 @@ AliAnalysisTaskFindableHypertriton3::AliAnalysisTaskFindableHypertriton3(TString
       fOutputList{nullptr},
       fFindableTree{nullptr},
       fTreeHyp3BodyVarTracks{nullptr},
+      fTreeHyp3BodyVarPDGcodes{0},
       fTreeHyp3BodyVarNsigmaTPC{0},
       fTreeHyp3BodyVarNsigmaTOF{0},
       fTreeHyp3BodyVarEventId{0},
@@ -201,9 +202,9 @@ void AliAnalysisTaskFindableHypertriton3::UserCreateOutputObjects() {
 
   fFindableTree->Branch("fPrimaryVertex", &fPrimaryVertex);
 
-  fFindableTree->Branch("fTreeHyp3BodyVarRefit0", &fTreeHyp3BodyVarRefit[0], "fTreeHyp3BodyVarRefit0/O");
-  fFindableTree->Branch("fTreeHyp3BodyVarRefit1", &fTreeHyp3BodyVarRefit[1], "fTreeHyp3BodyVarRefit1/O");
-  fFindableTree->Branch("fTreeHyp3BodyVarRefit2", &fTreeHyp3BodyVarRefit[2], "fTreeHyp3BodyVarRefit2/O");
+  fFindableTree->Branch("fTreeHyp3BodyVarPDGcode0", &fTreeHyp3BodyVarPDGcodes[0], "fTreeHyp3BodyVarPDGcode0/I");
+  fFindableTree->Branch("fTreeHyp3BodyVarPDGcode1", &fTreeHyp3BodyVarPDGcodes[1], "fTreeHyp3BodyVarPDGcode1/I");
+  fFindableTree->Branch("fTreeHyp3BodyVarPDGcode2", &fTreeHyp3BodyVarPDGcodes[2], "fTreeHyp3BodyVarPDGcode2/I");
 
   fFindableTree->Branch("fTreeHyp3BodyVarNsigmaTPC0", &fTreeHyp3BodyVarNsigmaTPC[0], "fTreeHyp3BodyVarNsigmaTPC0/F");
   fFindableTree->Branch("fTreeHyp3BodyVarNsigmaTPC1", &fTreeHyp3BodyVarNsigmaTPC[1], "fTreeHyp3BodyVarNsigmaTPC1/F");
@@ -216,6 +217,7 @@ void AliAnalysisTaskFindableHypertriton3::UserCreateOutputObjects() {
   fFindableTree->Branch("fTreeHyp3BodyVarEventId", &fTreeHyp3BodyVarEventId, "fTreeHyp3BodyVarEventId/l");
   fFindableTree->Branch("fTreeHyp3BodyVarMotherId", &fTreeHyp3BodyVarMotherId, "fTreeHyp3BodyVarMotherId/I");
 
+  fFindableTree->Branch("fTreeHyp3BodyVarIsFakeCand", &fTreeHyp3BodyVarIsFakeCand, "fTreeHyp3BodyVarIsFakeCand/O");
 
   fFindableTree->Branch("fTreeHyp3BodyVarTruePx", &fTreeHyp3BodyVarTruePx, "fTreeHyp3BodyVarTruePx/F");
   fFindableTree->Branch("fTreeHyp3BodyVarTruePy", &fTreeHyp3BodyVarTruePy, "fTreeHyp3BodyVarTruePy/F");
@@ -315,7 +317,7 @@ void AliAnalysisTaskFindableHypertriton3::UserExec(Option_t *) {
     if (!esdTrack) continue;
     int lLabel          = (int)TMath::Abs(esdTrack->GetLabel());
     AliVParticle *vPart = mcEvent->GetTrack(lLabel);
-    if(IsHyperTriton3(vPart, mcEvent)){
+    if(IsHyperTriton3(mcEvent, vPart)){
       vGenHyp3.push_back({esdTrack, vPart, lLabel});
     }
   }
@@ -334,27 +336,25 @@ void AliAnalysisTaskFindableHypertriton3::UserExec(Option_t *) {
 
     for (size_t iGenTrack = 0; iGenTrack < vGenHyp3.size(); iGenTrack++) {
       //loop
-      for (int iD = vGenHyp3[iGenTrack].hyp3->GetDaughterFirst(); iD <= vGenHyp3[iGenTrack].hyp3->GetDaughterLast(); iD++) {
-        AliESDtrack *dPart = esdEvent->GetTrack(iD);
+      for (int iD = vMotherPart->GetDaughterFirst(); iD <= vMotherPart->GetDaughterLast(); iD++) {
+        AliESDtrack *dPart = mcEvent->GetTrack(iD);
         int dPartPDG        = dPart->PdgCode();
         int sTrack = 0;
-        if (std::abs(dPartPDG) == 11){ continue;}
-        else if(std::abs(dPartPDG) == 211){ sTrack = 2;} //pion
-        else if(std::abs(dPartPDG) == 2212){ sTrack = 1;} //proton
-        else{ //deuteron
+        if (std::abs(dPartPDG) == 11) continue;
+        else if(std::abs(dPartPDG) == 211) sTrack = 2; //pion
+        else if(std::abs(dPartPDG) == 2212) sTrack = 1; //proton
+        else{
           sTrack = 0;
-          int lLabel          = (int)TMath::Abs(dPart->GetLabel());
-          AliVParticle *vPart = mcEvent->GetTrack(lLabel);
-          fTreeHyp3BodyVarDecayVx = vPart->Xv();
-          fTreeHyp3BodyVarDecayVy = vPart->Yv();
-          fTreeHyp3BodyVarDecayVz = vPart->Zv();
-          fTreeHyp3BodyVarDecayT  = vPart->Tv();
-        }
+          fTreeHyp3BodyVarDecayVx = dPart->Xv();
+          fTreeHyp3BodyVarDecayVy = dPart->Yv();
+          fTreeHyp3BodyVarDecayVz = dPart->Zv();
+          fTreeHyp3BodyVarDecayT  = dPart->Tv();
+        } //deuteron
 
         fTreeHyp3BodyVarTracks[sTrack] = dPart;
         // if true ->rejected
         fTreeHyp3BodyVarRefit[sTrack] = ((dPart->GetStatus() & AliVTrack::kTPCrefit) == 0 && (dPart->GetStatus() & AliVTrack::kITSrefit) == 0) || dPart->GetKinkIndex(0) > 0;
-        fTreeHyp3BodyVarNsigmaTPC[sTrack] = fPIDResponse->NumberOfSigmasTPC(dPart,kSpecies[sTrack]);
+        fTreeHyp3BodyVarNsigmaTPC[sTrack] = fPIDResponse->NumberOfSigmasTPC(dPart,kSpsecies[sTrack]);
         fTreeHyp3BodyVarNsigmaTOF[sTrack] = (HasTOF(dPart)) ? fPIDResponse->NumberOfSigmasTOF(dPart,kSpecies[sTrack]): -999.;
       }
 

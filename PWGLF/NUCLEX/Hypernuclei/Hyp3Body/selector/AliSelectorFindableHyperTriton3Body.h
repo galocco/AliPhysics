@@ -15,13 +15,63 @@
 #include "AliPIDResponse.h"
 #include "AliVertexerHyperTriton3Body.h"
 #include "AliVertexerTracks.h"
-
 #include <TVector3.h>
+#include <TStopwatch.h>
 #include <vector>
+
+#include <KFParticle.h>
+#include "DCAFitterN.h"
 
 class TH1D;
 class TH2D;
 class TH3D;
+
+struct RParticles {
+  KFParticle pion;
+  KFParticle proton;
+  KFParticle deuteron;
+  KFParticle hypertriton;
+};
+
+struct RHyperTritonO2 {
+  float fCent = -1.;
+  float pt = -999.f;
+  float phi = -999.f;
+  float pz = -999.f;
+  float ct = -1.f;
+  float r = -1.f;
+  float cosPA = -2.f;
+  float m = -1;
+  float cosPA_Lambda = -2.; 
+  Double32_t mppi_vert = -1.; //[1.077,1.203,8]
+  Double32_t mppi = -1.;      //[1.077,1.203,8]
+  Double32_t dca_lambda_hyper = -1.0; //[0.0,8.0,8]
+  Double32_t dca_de = -1.0; //[0.0,8.0,8]
+  Double32_t dca_pr = -1.0; //[0.0,8.0,8]
+  Double32_t dca_pi = -1.0; //[0.0,8.0,8]
+  Double32_t tpcNsig_de = -4.0; //[-4.0,4.0,8]
+  Double32_t tpcNsig_pr = -4.0; //[-4.0,4.0,8]
+  Double32_t tpcNsig_pi = -4.0; //[-4.0,4.0,8]
+  Double32_t tofNsig_de = -4.0; //[-4.0,4.0,8]
+  Double32_t tofNsig_pr = -4.0; //[-4.0,4.0,8]
+  Double32_t tofNsig_pi = -4.0; //[-4.0,4.0,8]
+  Double32_t dca_de_pr = -4.0; //[0.0,8.0,8]
+  Double32_t dca_de_pi = -4.0; //[0.0,8.0,8]
+  Double32_t dca_pr_pi = -4.0; //[0.0,8.0,8]
+  Double32_t dca_de_sv = -4.0; //[0.0,8.0,8]
+  Double32_t dca_pr_sv = -4.0; //[0.0,8.0,8]
+  Double32_t dca_pi_sv = -4.0; //[0.0,8.0,8]
+  Double32_t chi2 = -1.f;      //[0.0,16.,16]
+  UChar_t tpcClus_de = 0u;
+  UChar_t tpcClus_pr = 0u;
+  UChar_t tpcClus_pi = 0u;
+  UChar_t candidates = 0u;
+  UChar_t fTrigger = 0u;
+  bool hasTOF_de = false;
+  bool hasTOF_pr = false;
+  bool hasTOF_pi = false;
+  bool positive = false;
+};
 
 class AliSelectorFindableHyperTriton3Body : public TSelector {
 public:
@@ -31,7 +81,7 @@ public:
   // Readers to access the data (delete the ones you do not need).
   TTreeReaderValue<AliESDtrack> fTreeHyp3BodyVarTracks[3] = {{fReader, "fTreeHyp3BodyVarTrack0"}, {fReader, "fTreeHyp3BodyVarTrack1"}, {fReader, "fTreeHyp3BodyVarTrack2"}};
 
-  TTreeReaderValue<Int_t> fTreeHyp3BodyVarPDGcodes[3] = {{fReader, "fTreeHyp3BodyVarPDGcode0"},{fReader, "fTreeHyp3BodyVarPDGcode1"},{fReader, "fTreeHyp3BodyVarPDGcode2"}};
+  TTreeReaderValue<Bool_t> fTreeHyp3BodyVarRefit[3] = {{fReader, "fTreeHyp3BodyVarRefit0"},{fReader, "fTreeHyp3BodyVarRefit1"},{fReader, "fTreeHyp3BodyVarRefit2"}};
 
   TTreeReaderValue<Float_t> fTreeHyp3BodyVarNsigmaTPC[3] = {{fReader, "fTreeHyp3BodyVarNsigmaTPC0"},{fReader, "fTreeHyp3BodyVarNsigmaTPC1"},{fReader, "fTreeHyp3BodyVarNsigmaTPC2"}};
 
@@ -40,8 +90,6 @@ public:
   TTreeReaderValue<ULong64_t> fTreeHyp3BodyVarEventId = {fReader, "fTreeHyp3BodyVarEventId"};
 
   TTreeReaderValue<Int_t> fTreeHyp3BodyVarMotherId= { fReader, "fTreeHyp3BodyVarMotherId"};
-
-  TTreeReaderValue<Bool_t> fTreeHyp3BodyVarIsFakeCand = {fReader, "fTreeHyp3BodyVarIsFakeCand"};
 
   TTreeReaderValue<AliESDVertex> fPrimaryVertex = {fReader, "fPrimaryVertex"};
 
@@ -53,7 +101,7 @@ public:
 
   TTreeReaderValue<Float_t> fTreeHyp3BodyVarMagneticField = {fReader, "fTreeHyp3BodyVarMagneticField"};
 
-  AliSelectorFindableHyperTriton3Body(TString outputName = "output.root", TString outputPath = ".",
+  AliSelectorFindableHyperTriton3Body(TString outputName = "output.root", TString outputPath = ".", int vertexer = 0,
                                       TTree * /*tree*/ = 0);
   virtual ~AliSelectorFindableHyperTriton3Body() {}
   AliSelectorFindableHyperTriton3Body(const AliSelectorFindableHyperTriton3Body &) = delete;
@@ -76,8 +124,12 @@ public:
 
   TString fOutputFileName;
   TString fOutputFilePath;
-
-
+  int fAlg;
+  //fAlg select the vertexer:
+  //0 ->kf
+  //1 ->02
+  //2 ->std
+  //
   AliVertexerHyperTriton3Body fHypertritonVertexer;
   AliESDtrackCuts *fESDtrackCuts = nullptr;
 
@@ -85,32 +137,39 @@ public:
   unsigned long fLastEventId = 0ull;
   int fCurrentMotherId = -1;
   int fLastMotherId = -1;
+  bool fCurrentRefit = true;
   int fNclones = -1;
-  bool fFakeCand = false;
-
+  int fNcycles = 0;
+  int fNrec = 0;
+  TH1D* fOperations = nullptr;
+  TH1D* fTotTime = nullptr;
+  TStopwatch* fTimer = nullptr;
   // Histogram for efficiencies
-  TH2D *fHistGen[2] = {nullptr};
-  TH2D *fHistEffBefore[2] = {nullptr};
-  TH2D *fHistEffSel[2] = {nullptr};
-  TH2D *fHistEffSecVert[2] = {nullptr};
-  TH2D *fHistRecSingle[2] = {nullptr};
-  TH2D *fHistRecFake[2] = {nullptr};
-  TH2D *fHistRecClones[2] = {nullptr};
-  TH2D *fHistFakeRate[2] = {nullptr};
-  TH2D *fHistClonesRate[2] = {nullptr};
-  TH2D *fHistSingleRate[2] = {nullptr};
-  TH3D *fHistEffVsNsigmaTPC[2] = {nullptr};
-  TH3D *fHistEffVsNclusTPC[2] = {nullptr};
-  TH3D *fHistEffVsNclusITS[2] = {nullptr};
-  TH3D *fHistGenVsNsigmaTPC[2] = {nullptr};
-  TH3D *fHistGenVsNclusTPC[2] = {nullptr};
-  TH3D *fHistGenVsNclusITS[2] = {nullptr};
-  TH2D *fHistProjNsigmaTPC[2][2] = {{nullptr}};
-  TH2D *fHistProjNclusTPC[2][2] = {{nullptr}};
-  TH2D *fHistProjNclusITS[2][2] = {{nullptr}};
+  TH1D *fHistCtRec[2] = {nullptr};
 
+  TH3D *fHistFakeVsCuts[3][2] = {{nullptr}};
+  TH3D *fHistClonesVsCuts[3][2] = {{nullptr}};
+
+  TH3D *fHistResolutionVsCuts[3][2] = {{nullptr}};
+  TH3D *fHistSingleRecVsCuts[3][2] = {{nullptr}};
+  TH2D *fHistGen[2] = {nullptr};
+
+  TH1D *fHistGenPt = nullptr;
+  TH1D *fHistRecPt = nullptr;
   // Histograms for selection
   TH2D *fHistInvMassPt[2][3] = {{nullptr}};
+  TH2D *fHistInvMassPtSel[2][3] = {{nullptr}};
+  TH2D *fHistMassResPt[2] = {nullptr};//[Matter]
+  TH2D *fHistMassResCt[2] = {nullptr};//[Matter]
+  TH2D *fHistCtResCt[2] = {nullptr};//[Matter]
+  TH2D *fHistCtResCtTrueP[2] = {nullptr};//[Matter]
+  TH2D *fHistPtResPt[2] = {nullptr};//[Matter]
+  TH2D *fHistPResP[2] = {nullptr};//[Matter]
+  TH2D *fHistXResX[2] = {nullptr};//[Matter]
+  TH2D *fHistYResY[2] = {nullptr};//[Matter]
+  TH2D *fHistZResZ[2] = {nullptr};//[Matter]
+  TH1D *fHistPDG[3] = {nullptr};//[Matter]
+
   TH1D *fHistDaughterPt[3][3] = {{nullptr}};
   TH1D *fHistDaughterTPCchi2[3][3] = {{nullptr}};
   TH1D *fHistDaughterITSchi2[3][3] = {{nullptr}};
@@ -120,19 +179,22 @@ public:
   TH1D *fHistNSigmaTOF[3][3] = {{nullptr}};
 
   // Histograms after vertexer
-  TH1D *fHistVertexChi2 = nullptr;
-  TH1D *fHistResDecayVtx[3] = {nullptr};
-  TH1D *fHistCosPAngle = nullptr;
-  TH1D *fHistDCA2pvXY[3] = {nullptr};
-  TH1D *fHistDCA2pvZ[3] = {nullptr};
-  TH1D *fHistDCA2pv[3] = {nullptr};
-  TH1D *fHistDCA2dvXY[3] = {nullptr};
-  TH1D *fHistDCA2dvZ[3] = {nullptr};
-  TH1D *fHistDCA2dv[3] = {nullptr};
-  TH1D *fHistTrackDistance[3] = {nullptr};
+  TH1D *fHistVertexChi2[2] = {nullptr};
+  TH1D *fHistCosPAngle[2] = {nullptr};
+  TH1D *fHist2ProngChi2[2] = {nullptr};
+  TH1D *fHist3ProngChi2[2] = {nullptr};
+  TH1D *fHistVertChi2[2] = {nullptr};
+  TH1D *fHistDCA2pvXY[2][3] = {{nullptr}};
+  TH1D *fHistDCA2pvZ[2][3] = {{nullptr}};
+  TH1D *fHistDCA2pv[2][3] = {{nullptr}};
+  TH1D *fHistDCA2dvXY[2][3] = {{nullptr}};
+  TH1D *fHistDCA2dvZ[2][3] = {{nullptr}};
+  TH1D *fHistDCA2dv[2][3] = {{nullptr}};
+  TH1D *fHistTrackDistance[2][3] = {{nullptr}};
 
   bool AcceptCandidate(int,int);
-  void Divide(TH3D*,TH2D*);
+  bool KFVertexer(AliESDtrack* [], RParticles &, double [], float []);
+  bool O2Vertexer(AliESDtrack* [], RHyperTritonO2 &, double [],float ,float []);
 
   ClassDef(AliSelectorFindableHyperTriton3Body, 0);
 };
