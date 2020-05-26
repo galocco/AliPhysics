@@ -70,12 +70,6 @@ ClassImp(AliAnalysisTaskFindableHypertriton3);
 
 namespace {
 
-struct SHyp3 {
-  AliESDtrack *track;
-  AliVParticle *hyp3;
-  int hyp3Id;
-};
-
 const AliPID::EParticleType kSpecies[3] = {AliPID::kDeuteron, AliPID::kProton, AliPID::kPion};
 
 bool IsHyperTriton3(const AliVParticle *vPart, AliMCEvent *mcEvent) {
@@ -113,9 +107,6 @@ AliAnalysisTaskFindableHypertriton3::AliAnalysisTaskFindableHypertriton3(TString
       fTreeHyp3BodyVarTracks{nullptr},
       fTreeHyp3BodyVarNsigmaTPC{0},
       fTreeHyp3BodyVarNsigmaTOF{0},
-      fTreeHyp3BodyVarEventId{0},
-      fTreeHyp3BodyVarMotherId{0},
-      fTreeHyp3BodyVarRefit{0},
       fTreeHyp3BodyVarTruePx{0},
       fTreeHyp3BodyVarTruePy{0},
       fTreeHyp3BodyVarTruePz{0},
@@ -201,10 +192,6 @@ void AliAnalysisTaskFindableHypertriton3::UserCreateOutputObjects() {
 
   fFindableTree->Branch("fPrimaryVertex", &fPrimaryVertex);
 
-  fFindableTree->Branch("fTreeHyp3BodyVarRefit0", &fTreeHyp3BodyVarRefit[0], "fTreeHyp3BodyVarRefit0/O");
-  fFindableTree->Branch("fTreeHyp3BodyVarRefit1", &fTreeHyp3BodyVarRefit[1], "fTreeHyp3BodyVarRefit1/O");
-  fFindableTree->Branch("fTreeHyp3BodyVarRefit2", &fTreeHyp3BodyVarRefit[2], "fTreeHyp3BodyVarRefit2/O");
-
   fFindableTree->Branch("fTreeHyp3BodyVarNsigmaTPC0", &fTreeHyp3BodyVarNsigmaTPC[0], "fTreeHyp3BodyVarNsigmaTPC0/F");
   fFindableTree->Branch("fTreeHyp3BodyVarNsigmaTPC1", &fTreeHyp3BodyVarNsigmaTPC[1], "fTreeHyp3BodyVarNsigmaTPC1/F");
   fFindableTree->Branch("fTreeHyp3BodyVarNsigmaTPC2", &fTreeHyp3BodyVarNsigmaTPC[2], "fTreeHyp3BodyVarNsigmaTPC2/F");
@@ -212,10 +199,6 @@ void AliAnalysisTaskFindableHypertriton3::UserCreateOutputObjects() {
   fFindableTree->Branch("fTreeHyp3BodyVarNsigmaTOF0", &fTreeHyp3BodyVarNsigmaTOF[0], "fTreeHyp3BodyVarNsigmaTOF0/F");
   fFindableTree->Branch("fTreeHyp3BodyVarNsigmaTOF1", &fTreeHyp3BodyVarNsigmaTOF[1], "fTreeHyp3BodyVarNsigmaTOF1/F");
   fFindableTree->Branch("fTreeHyp3BodyVarNsigmaTOF2", &fTreeHyp3BodyVarNsigmaTOF[2], "fTreeHyp3BodyVarNsigmaTOF2/F");
-
-  fFindableTree->Branch("fTreeHyp3BodyVarEventId", &fTreeHyp3BodyVarEventId, "fTreeHyp3BodyVarEventId/l");
-  fFindableTree->Branch("fTreeHyp3BodyVarMotherId", &fTreeHyp3BodyVarMotherId, "fTreeHyp3BodyVarMotherId/I");
-
 
   fFindableTree->Branch("fTreeHyp3BodyVarTruePx", &fTreeHyp3BodyVarTruePx, "fTreeHyp3BodyVarTruePx/F");
   fFindableTree->Branch("fTreeHyp3BodyVarTruePy", &fTreeHyp3BodyVarTruePy, "fTreeHyp3BodyVarTruePy/F");
@@ -309,14 +292,13 @@ void AliAnalysisTaskFindableHypertriton3::UserExec(Option_t *) {
   //--------------------------------------------------------------------------------
 
   std::vector<SHyp3> vGenHyp3;
-  vGenHyp3.reserve(vNTracks);
   for (Long_t iTrack = 0; iTrack < vNTracks; iTrack++) {
     AliESDtrack *esdTrack = esdEvent->GetTrack(iTrack);
     if (!esdTrack) continue;
     int lLabel          = (int)TMath::Abs(esdTrack->GetLabel());
     AliVParticle *vPart = mcEvent->GetTrack(lLabel);
     if(IsHyperTriton3(vPart, mcEvent)){
-      vGenHyp3.push_back({esdTrack, vPart, lLabel});
+      vGenHyp3.push_back(vPart);
     }
   }
 
@@ -326,15 +308,14 @@ void AliAnalysisTaskFindableHypertriton3::UserExec(Option_t *) {
   
 
   if (!vGenHyp3.empty()) {
-    fTreeHyp3BodyVarEventId++;
-    fTreeHyp3BodyVarPVt = vGenHyp3.back().hyp3->Tv();
-    fTreeHyp3BodyVarPVx = vGenHyp3.back().hyp3->Xv();
-    fTreeHyp3BodyVarPVy = vGenHyp3.back().hyp3->Yv();
-    fTreeHyp3BodyVarPVz = vGenHyp3.back().hyp3->Zv();
+    fTreeHyp3BodyVarPVt = vGenHyp3.back()->Tv();
+    fTreeHyp3BodyVarPVx = vGenHyp3.back()->Xv();
+    fTreeHyp3BodyVarPVy = vGenHyp3.back()->Yv();
+    fTreeHyp3BodyVarPVz = vGenHyp3.back()->Zv();
 
     for (size_t iGenTrack = 0; iGenTrack < vGenHyp3.size(); iGenTrack++) {
       //loop
-      for (int iD = vGenHyp3[iGenTrack].hyp3->GetDaughterFirst(); iD <= vGenHyp3[iGenTrack].hyp3->GetDaughterLast(); iD++) {
+      for (int iD = vGenHyp3[iGenTrack]->GetDaughterFirst(); iD <= vGenHyp3[iGenTrack]->GetDaughterLast(); iD++) {
         AliESDtrack *dPart = esdEvent->GetTrack(iD);
         int dPartPDG        = dPart->PdgCode();
         int sTrack = 0;
@@ -352,18 +333,13 @@ void AliAnalysisTaskFindableHypertriton3::UserExec(Option_t *) {
         }
 
         fTreeHyp3BodyVarTracks[sTrack] = dPart;
-        // if true ->rejected
-        fTreeHyp3BodyVarRefit[sTrack] = ((dPart->GetStatus() & AliVTrack::kTPCrefit) == 0 && (dPart->GetStatus() & AliVTrack::kITSrefit) == 0) || dPart->GetKinkIndex(0) > 0;
         fTreeHyp3BodyVarNsigmaTPC[sTrack] = fPIDResponse->NumberOfSigmasTPC(dPart,kSpecies[sTrack]);
         fTreeHyp3BodyVarNsigmaTOF[sTrack] = (HasTOF(dPart)) ? fPIDResponse->NumberOfSigmasTOF(dPart,kSpecies[sTrack]): -999.;
       }
 
-      AliVParticle *vHyperTriton = vGenHyp3[iGenTrack].hyp3;
-      fTreeHyp3BodyVarTruePx     = vHyperTriton->Px();
-      fTreeHyp3BodyVarTruePy     = vHyperTriton->Py();
-      fTreeHyp3BodyVarTruePz     = vHyperTriton->Pz();
-
-      fTreeHyp3BodyVarMotherId = vGenHyp3[iGenTrack].hyp3Id;
+      fTreeHyp3BodyVarTruePx     = vGenHyp3[iGenTrack]->Px();
+      fTreeHyp3BodyVarTruePy     = vGenHyp3[iGenTrack]->Py();
+      fTreeHyp3BodyVarTruePz     = vGenHyp3[iGenTrack]->Pz();
       fFindableTree->Fill();
     }
   }
