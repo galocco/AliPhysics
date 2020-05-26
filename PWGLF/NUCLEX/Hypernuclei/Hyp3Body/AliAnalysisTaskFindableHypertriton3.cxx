@@ -291,7 +291,7 @@ void AliAnalysisTaskFindableHypertriton3::UserExec(Option_t *) {
   // Part 2: establish list of hypertritons in the 3 body channel
   //--------------------------------------------------------------------------------
 
-  std::vector<SHyp3> vGenHyp3;
+  std::vector<AliVParticle*> vGenHyp3;
   for (Long_t iTrack = 0; iTrack < vNTracks; iTrack++) {
     AliESDtrack *esdTrack = esdEvent->GetTrack(iTrack);
     if (!esdTrack) continue;
