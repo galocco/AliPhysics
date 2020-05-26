@@ -73,7 +73,6 @@ private:
   AliESDtrack *fTreeHyp3BodyVarTracks[3]; //!
   Float_t fTreeHyp3BodyVarNsigmaTPC[3];
   Float_t fTreeHyp3BodyVarNsigmaTOF[3];
-  Bool_t fTreeHyp3BodyVarRefit[3];
 
   Float_t fTreeHyp3BodyVarTruePx;
   Float_t fTreeHyp3BodyVarTruePy;
