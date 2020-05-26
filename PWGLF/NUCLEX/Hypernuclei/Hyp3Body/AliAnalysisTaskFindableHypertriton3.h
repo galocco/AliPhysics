@@ -75,9 +75,6 @@ private:
   Float_t fTreeHyp3BodyVarNsigmaTOF[3];
   Bool_t fTreeHyp3BodyVarRefit[3];
 
-  ULong64_t fTreeHyp3BodyVarEventId;
-  Int_t fTreeHyp3BodyVarMotherId;
-
   Float_t fTreeHyp3BodyVarTruePx;
   Float_t fTreeHyp3BodyVarTruePy;
   Float_t fTreeHyp3BodyVarTruePz;
