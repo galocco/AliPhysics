@@ -111,9 +111,9 @@ private:
   REvent3KF                    fREvent;
   std::vector<SHyperTriton3> fGenHyp;
   std::vector<int>             fGenRecMap;
-  std::vector<AliESDtrack*>           fGenRecDe;
-  std::vector<AliESDtrack*>           fGenRecPr;
-  std::vector<AliESDtrack*>           fGenRecPi;
+  std::vector<AliESDtrack*>    fRecDe;
+  std::vector<AliESDtrack*>    fRecPr;
+  std::vector<AliESDtrack*>    fRecPi;
 
   AliAnalysisTaskHyperTriton3(const AliAnalysisTaskHyperTriton3 &);               // not implemented
   AliAnalysisTaskHyperTriton3 &operator=(const AliAnalysisTaskHyperTriton3 &);    // not implemented

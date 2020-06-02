@@ -123,7 +123,7 @@ template <typename F> double Hypot(F a, F b, F c, F d) { return std::sqrt(Sq(a) 
 }    // namespace
 
 AliAnalysisTaskHyperTriton3VtxPerf::AliAnalysisTaskHyperTriton3VtxPerf(bool mc, std::string name)
-    : AliAnalysisTaskSE(name.data()), fEventCuts{}, fMC{mc}, fREvent{}, fGenHyp{}, fRecHyp{} {
+    : AliAnalysisTaskSE(name.data()), fEventCuts{}, fMC{mc}, fREvent{}, fGenHyp{} {
   fTrackCuts.SetMinNClustersTPC(0);
   fTrackCuts.SetEtaRange(-0.9,0.9);
   /// Settings for the custom vertexer
@@ -164,7 +164,6 @@ void AliAnalysisTaskHyperTriton3VtxPerf::UserCreateOutputObjects() {
   OpenFile(2);
   fTreeHyp3 = new TTree("Hyp3KF","Hypetriton 3 Body with the KFParticle");
   fTreeHyp3->Branch("RCollision", &fREvent);
-  fTreeHyp3->Branch("RHyperTriton", &fRecHyp);
 
   if (man->GetMCtruthEventHandler()) {
     fTreeHyp3->Branch("SHyperTriton", &fGenHyp);
@@ -208,7 +207,6 @@ void AliAnalysisTaskHyperTriton3VtxPerf::UserExec(Option_t *) {
   }
 
   fGenHyp.clear();
-  fRecHyp.clear();
   fGenRecMap.clear();
   fRecDe.clear();
   fRecPr.clear();
