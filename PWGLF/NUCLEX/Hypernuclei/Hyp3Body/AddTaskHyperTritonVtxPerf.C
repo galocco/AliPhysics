@@ -1,4 +1,4 @@
-AliAnaysisTaskHyperTriton3VtxPerf * AddMyTask ( TString name = " name ") {
+AliAnaysisTaskHyperTriton3VtxPerf * AddTaskVtxPerf ( TString name = " name ") {
   AliAnalysisManager * mgr = AliAnalysisManager::GetAnalysisManager();
   TString fileName = AliAnalysisManager :: GetCommonFileName();
   fileName += ": MyTask "; // create a subfolder in the file

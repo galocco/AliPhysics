@@ -110,8 +110,8 @@ bool HasTOF(AliVTrack *track) {
 }
 
 int GetIndex(int PdgCode){
-  else if(std::abs(dPartPDG) == 211){ return 2; } //pion
-  else if(std::abs(dPartPDG) == 2212){ return 1; } //proton
+  if(std::abs(PdgCode) == 211){ return 2; } //pion
+  else if(std::abs(PdgCode) == 2212){ return 1; } //proton
   return 0; //deuteron
 }
 
@@ -261,8 +261,7 @@ void AliAnalysisTaskHyperTriton3VtxPerf::UserExec(Option_t *) {
       genHyp.phi = std::atan2(part->Py(),part->Px());
       genHyp.pz = part->Pz();
       for(int iCoord=0; iCoord<4; iCoord++){
-        genHyp.prim_vert = mcVtx[iCoord];
-        genHyp.dec_vert = decayVtx[iCoord];
+        genHyp.dec_vert[iCoord] = decayVtx[iCoord];
       }
       genHyp.positive = part->PdgCode() > 0;
       mcMap[iTrack] = fGenHyp.size();
@@ -308,16 +307,25 @@ void AliAnalysisTaskHyperTriton3VtxPerf::UserExec(Option_t *) {
   // }
 
   for (const auto &de : helpers[kDeuteron]) {
+    int lab_de = std::abs(de.track->GetLabel());
+    AliVParticle *v_de = mcEvent->GetTrack(lab_de);
+    int q_de = (v_de->PdgCode()<0) ? -1 : 1;
     for (const auto &pr : helpers[kProton]) {
-      if (de.track == pr.track || pr.particle.GetQ() * de.particle.GetQ() < 0)
+      int lab_pr = std::abs(pr.track->GetLabel());
+      AliVParticle *v_pr = mcEvent->GetTrack(lab_pr);
+      int q_pr = (v_pr->PdgCode()<0) ? -1 : 1;
+      if (de.track == pr.track || q_pr * q_de < 0)
         continue;
       for (const auto &pi : helpers[kPion]) {
-        if (pr.track == pi.track || de.track == pi.track || pi.particle.GetQ() * pr.particle.GetQ() > 0) 
+        int lab_pi = std::abs(pi.track->GetLabel());
+        AliVParticle *v_pi = mcEvent->GetTrack(lab_pi);
+        int q_pi = (v_pi->PdgCode()<0) ? -1 : 1;
+        if (pr.track == pi.track || de.track == pi.track || q_pi * q_pr > 0) 
           continue;
 
         bool record{!fMC || !fOnlyTrueCandidates};
         if (fMC) {
-          int momId = IsTrueHyperTriton3Candidate(deu.track, pr.track, pi.track, mcEvent);
+          int momId = IsTrueHyperTriton3Candidate(de.track, pr.track, pi.track, mcEvent);
           record = record || momId >=0;
           if (record) {
             fGenRecMap.push_back(mcMap[momId]);

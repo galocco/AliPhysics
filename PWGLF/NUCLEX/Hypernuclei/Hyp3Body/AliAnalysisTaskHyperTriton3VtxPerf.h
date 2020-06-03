@@ -44,19 +44,19 @@ struct SHyperTriton3 {
   bool positive = false;
 };
 
-class AliAnalysisTaskHyperTriton3 : public AliAnalysisTaskSE {
+class AliAnalysisTaskHyperTriton3VtxPerf : public AliAnalysisTaskSE {
 
 public:
   enum kReducedTrigger { kINT7 = BIT(0), kCentral = BIT(1), kSemiCentral = BIT(2), kPositiveB = BIT(3) };
 
-  AliAnalysisTaskHyperTriton3(bool mc = false, std::string name = "HyperTriton3");
-  virtual ~AliAnalysisTaskHyperTriton3();
+  AliAnalysisTaskHyperTriton3VtxPerf(bool mc = false, std::string name = "HyperTriton3");
+  virtual ~AliAnalysisTaskHyperTriton3VtxPerf();
 
   virtual void UserCreateOutputObjects();
   virtual void UserExec(Option_t *option);
   virtual void Terminate(Option_t *);
 
-  static AliAnalysisTaskHyperTriton3 *AddTask(bool isMC = false, TString suffix = "");
+  static AliAnalysisTaskHyperTriton3VtxPerf *AddTask(bool isMC = false, TString suffix = "");
 
   void SetDownscaling(bool down) { fDownscaling = down; }
 
@@ -115,10 +115,10 @@ private:
   std::vector<AliESDtrack*>    fRecPr;
   std::vector<AliESDtrack*>    fRecPi;
 
-  AliAnalysisTaskHyperTriton3(const AliAnalysisTaskHyperTriton3 &);               // not implemented
-  AliAnalysisTaskHyperTriton3 &operator=(const AliAnalysisTaskHyperTriton3 &);    // not implemented
+  AliAnalysisTaskHyperTriton3VtxPerf(const AliAnalysisTaskHyperTriton3VtxPerf &);               // not implemented
+  AliAnalysisTaskHyperTriton3VtxPerf &operator=(const AliAnalysisTaskHyperTriton3VtxPerf &);    // not implemented
 
-  ClassDef(AliAnalysisTaskHyperTriton3, 1);
+  ClassDef(AliAnalysisTaskHyperTriton3VtxPerf, 1);
 };
 
 #endif
