@@ -26,7 +26,7 @@ class AliESDtrack;
 
 typedef ROOT::Math::LorentzVector<ROOT::Math::PxPyPzM4D<double>> LVector_t;
 
-struct REvent3KF
+struct REvent
 {
   float fX = -999.f;
   float fY = -999.f;
@@ -36,13 +36,22 @@ struct REvent3KF
   unsigned char fTrigger;
 };
 
+
 struct SHyperTriton3 {
-  float pt = -999.f;
-  float phi = -999.f;
+  float px = -999.f;
+  float py = -999.f;
   float pz = -999.f;
   float dec_vert[4] = {-999.f, -999.f, -999.f, -999.f};
   bool positive = false;
 };
+
+struct RCandidate {
+  AliESDtrack* track[3] = {nullptr};
+  float NsigmaTPC[3] = {-999.f, -999.f, -999.f}; 
+  float NsigmaTOF[3] = {-999.f, -999.f, -999.f}; 
+};
+
+
 
 class AliAnalysisTaskHyperTriton3VtxPerf : public AliAnalysisTaskSE {
 
@@ -96,24 +105,16 @@ private:
   bool fDownscaling = false;
   bool fEnableEventMixing = false;
 
-  /// Control histograms to monitor the filtering
-  TH2D *fHistNSigmaDeu = nullptr;    //! # sigma TPC for the deuteron
-  TH2D *fHistNSigmaP = nullptr;      //! # sigma TPC proton for the positive prong
-  TH2D *fHistNSigmaPi = nullptr;     //! # sigma TPC pion for the negative prong
-  TH2D *fHistInvMass = nullptr;      //! # Invariant mass histogram
-
   float fDownscalingFactorByEvent = 1.;        // fraction of the events saved in the tree
   float fDownscalingFactorByCandidate = 1.;    // fraction of the candidates saved in the tree
 
   std::list<AliESDtrack> fEventMixingPool[10][10];    /// container for the ESD used fot event mixing
   int fEventMixingPoolDepth = 0;                      /// max depth of the event mixing pool
 
-  REvent3KF                    fREvent;
+  REvent                    fREvent;
   std::vector<SHyperTriton3> fGenHyp;
   std::vector<int>             fGenRecMap;
-  std::vector<AliESDtrack*>    fRecDe;
-  std::vector<AliESDtrack*>    fRecPr;
-  std::vector<AliESDtrack*>    fRecPi;
+  std::vector<RCandidate>    fCandidate;
 
   AliAnalysisTaskHyperTriton3VtxPerf(const AliAnalysisTaskHyperTriton3VtxPerf &);               // not implemented
   AliAnalysisTaskHyperTriton3VtxPerf &operator=(const AliAnalysisTaskHyperTriton3VtxPerf &);    // not implemented

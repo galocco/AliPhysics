@@ -117,6 +117,11 @@
 #pragma link C++ class AliSelectorFindableHyperTriton3Body+;
 #pragma link C++ class RHyperTriton3KF+;
 #pragma link C++ class SHyperTriton3KF+;
+#pragma link C++ class AliAnalysisTaskHyperTriton3VtxPerf+;
+#pragma link C++ class RCandidate+;
+#pragma link C++ class REvent+;
+#pragma link C++ class SHyperTriton3+;
+#pragma link C++ class std::vector<RCandidate>+;
 #pragma link C++ class AliAnalysisTaskHypertriton3+;
 #pragma link C++ class RHyperTriton3O2+;
 #pragma link C++ class SHyperTriton3O2+;
