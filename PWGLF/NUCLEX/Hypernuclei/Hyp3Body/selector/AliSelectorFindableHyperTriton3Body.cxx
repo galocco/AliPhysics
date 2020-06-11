@@ -47,7 +47,7 @@ template <typename T> double Norm(T x, T y) { return std::sqrt(Sq(x) + Sq(y)); }
 
 template <typename T> double Norm(T x, T y, T z) { return std::sqrt(Sq(x) + Sq(y) + Sq(z)); }
 
-AliSelectorFindableHyperTriton3Body::AliSelectorFindableHyperTriton3Body(TString outputName, TString outputPath, int vertexer ,TTree *):
+AliSelectorFindableHyperTriton3Body::AliSelectorFindableHyperTriton3Body(TString outputName, TString outputPath, int vertexer,TTree *):
 fOutputFileName{outputName},
 fOutputFilePath{outputPath},
 fAlg{vertexer},
@@ -74,7 +74,7 @@ void AliSelectorFindableHyperTriton3Body::SlaveBegin(TTree * /*tree*/){
   // The tree argument is deprecated (on PROOF 0 is passed).
 
   TString option = GetOption();
-  std::cout<<"ciao";
+
   const char lAM[3]{"AM"};
   const char lRL[3]{"RL"};
   const char *lSpecies[3]{"d", "p", "pi"};
@@ -251,7 +251,7 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
   double lTrueDecayVtx[3]{*fTreeHyp3BodyVarDecayVtx[0],*fTreeHyp3BodyVarDecayVtx[1],*fTreeHyp3BodyVarDecayVtx[2]};
   fCurrentEventId = *fTreeHyp3BodyVarEventId;
   fCurrentMotherId = *fTreeHyp3BodyVarMotherId;
-  fCurrentRefit = *fTreeHyp3BodyVarRefit[0] && *fTreeHyp3BodyVarRefit[1] && *fTreeHyp3BodyVarRefit[2];
+  fFakeCand = *fTreeHyp3BodyVarIsFakeCand;
   bool lCharge = lTrack[0]->GetSign() < 0;
 
   float lDaughterPt[3] = {0.};
@@ -288,7 +288,6 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
       fNclones = 0;
     }
   }
-  if(fCurrentRefit) return true;
   
 
   //------------------------------------------------------------
@@ -331,7 +330,7 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
   RParticles lCollection;
   RHyperTritonO2 recHyp;
   fNcycles++;
-  bool vertexer_result = false;
+  bool vertexer_result;
   float decVert[3],kfchi2[3];
   if(fAlg==0){//kalman filter vertexer
     
@@ -344,7 +343,7 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
     vertexer_result=O2Vertexer(lTrack, recHyp, lRecPrimaryVtx, lMagField, decVert);
     fTimer->Stop();
   }
-  else if(fAlg==2){//standard vertexer
+  else if (fAlg==2){//standard vertexer
     fTimer->Continue();
     vertexer_result=fHypertritonVertexer.FindDecayVertex(lTrack[0], lTrack[1], lTrack[2], lMagField);
     fTimer->Stop();
@@ -352,14 +351,14 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
   if(!vertexer_result) return true;
   fNrec++;
   
-  AliESDVertex *lDecayVertex = nullptr;
+  AliESDVertex *lDecayVertex;
   TVector3 vRecDecayLenght;
-  float cospa=0;
-  float lHypPRec=0,lHypCtRec=0,lHypCtRecTrueP=0,lHypXRec=0,lHypYRec=0,lHypZRec=0;
+  float cospa;
+  float lHypPRec,lHypCtRec,lHypCtRecTrueP,lHypXRec,lHypYRec,lHypZRec;
   float lHypXGen = lTrueDecayVtx[0];
   float lHypYGen = lTrueDecayVtx[1];
   float lHypZGen = lTrueDecayVtx[2];
-  
+
   //the cut on the cosPA is applied only to the histograms to compute efficiency and resolution
     if(fAlg==2){//std vertexer
     lDecayVertex = static_cast<AliESDVertex *>(fHypertritonVertexer.GetCurrentVertex());   
@@ -378,7 +377,7 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
     lHypZRec = lRecDecayVtx[2];
   }
   else if(fAlg==0){//kf vertexer
-    ROOT::Math::XYZVectorF decayl{lCollection.hypertriton.X()-(float)lRecPrimaryVtx[0], lCollection.hypertriton.Y()-(float)lRecPrimaryVtx[1], lCollection.hypertriton.Z()-(float)lRecPrimaryVtx[2]};
+    ROOT::Math::XYZVectorF decayl{lCollection.hypertriton.X()-lRecPrimaryVtx[0], lCollection.hypertriton.Y()-lRecPrimaryVtx[1], lCollection.hypertriton.Z()-lRecPrimaryVtx[2]};
     ROOT::Math::XYZVectorF mom{lCollection.hypertriton.Px(), lCollection.hypertriton.Py(), lCollection.hypertriton.Pz()};
     lHypPRec = std::sqrt(mom.Mag2());
     cospa = mom.Dot(decayl) / std::sqrt(decayl.Mag2() * mom.Mag2());
@@ -541,7 +540,7 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
     //if(lCollection.hypertriton.GetChi2()/lCollection.hypertriton.GetNDF())
     fHistInvMassPtSel[lCharge][2]->Fill(lHypMassRec,lHypPtRec);
     fHistRecPt->Fill(lHypPtGen);
-    if(fNclones==0){
+    if(fNclones==0 && !fFakeCand){
       fHistMassResPt[lCharge]->Fill(lHypMassRec-kHypMass,lHypPtGen);
       fHistMassResCt[lCharge]->Fill(lHypMassRec-kHypMass,lHypCtGen);
       fHistPtResPt[lCharge]->Fill(lHypPtRec-lHypPtGen,lHypPtGen);
@@ -567,7 +566,9 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
 
   }
  
-  fHistCosPAngle[ctside]->Fill(cospa);
+  
+  if(!fFakeCand)
+    fHistCosPAngle[ctside]->Fill(cospa);
   if(cospa<0.99)
     return true;
   
@@ -577,17 +578,23 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
     for(int iVar=0; iVar<kNvariations; iVar++)
       if(AcceptCandidate(iVar,iCut)){
         fNclones=fOldClones;
-        if(fNclones==0){
-          fHistSingleRecVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
-          fHistResolutionVsCuts[iCut][lCharge]->Fill(lHypPtRec-lHypPtGen,lHypCtRec-lHypCtGen,iVar);         
-          fHistInvMassPt[lCharge][0]->Fill(lHypMassRec,lHypPtRec);
-          fNclones++;
+        if(fFakeCand){
+          fHistFakeVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
+          fHistInvMassPt[lCharge][1]->Fill(lHypMassRec,lHypPtRec);
         }
         else{
-          fHistClonesVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
-          fHistInvMassPt[lCharge][2]->Fill(lHypMassRec,lHypPtRec);
+          if(fNclones==0){
+            fHistSingleRecVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
+            fHistResolutionVsCuts[iCut][lCharge]->Fill(lHypPtRec-lHypPtGen,lHypCtRec-lHypCtGen,iVar);         
+            fHistInvMassPt[lCharge][0]->Fill(lHypMassRec,lHypPtRec);
+            fNclones++;
+          }
+          else{
+            fHistClonesVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
+            fHistInvMassPt[lCharge][2]->Fill(lHypMassRec,lHypPtRec);
+          }
         }
-    }
+      }
   }  
   return true;
 }
@@ -659,6 +666,20 @@ bool AliSelectorFindableHyperTriton3Body::KFVertexer(AliESDtrack* kTrack [], RPa
     helper[iT].NDF() = kTrack[iT]->GetNumberOfTPCClusters() * 2;
   }
   
+
+  /*
+  KFParticle test;
+  test.AddDaughter(helper[0]);
+
+  if (kTrack[2] == kTrack[1] || kTrack[1]->Charge() * kTrack[0]->Charge() < 0)
+    return false;
+  KFParticle test2{test};
+  test2.AddDaughter(helper[1]);
+
+  helper[0].TransportToParticle(test2);
+  helper[1].TransportToParticle(test2);
+  helper[2].TransportToParticle(test2);
+  */
   KFParticle oneCandidate;
   oneCandidate.AddDaughter(helper[2]);
   if (kTrack[2] == kTrack[1] || kTrack[1]->Charge() * kTrack[0]->Charge() < 0)
@@ -704,6 +725,13 @@ bool AliSelectorFindableHyperTriton3Body::KFVertexer(AliESDtrack* kTrack [], RPa
   kfPVertex.SetNContributors(fPrimaryVertex->GetNContributors());
 
   KFParticle prodVertex{kfPVertex};
+
+
+  /*
+  KFPVertex kfPVertex;
+  kfPVertex.SetXYZ(pver[0],pver[1],pver[2]);
+  KFParticle prodVertex{kfPVertex};
+  */
   vertPart.SetProductionVertex(prodVertex);
 
   float chi2_topology = vertPart.GetChi2() / vertPart.GetNDF();
@@ -716,8 +744,8 @@ bool AliSelectorFindableHyperTriton3Body::KFVertexer(AliESDtrack* kTrack [], RPa
   float dca_de_pi = helper[0].GetDistanceFromParticle(helper[2]);
   float dca_pr_pi = helper[1].GetDistanceFromParticle(helper[2]);
 
-  if(dca_de_pr > 2. || dca_de_pi > 2. || dca_pr_pi > 2.)
-    return false;
+  //if(dca_de_pr > 2. || dca_de_pi > 2. || dca_pr_pi > 2.)
+    //return false;
   
   return true;
 }
@@ -728,7 +756,7 @@ bool AliSelectorFindableHyperTriton3Body::O2Vertexer(AliESDtrack* kTrack [],RHyp
   o2::vertexing::DCAFitter3 fVertexer;
   fVertexer.setBz(bz);
   //fVertexer.setMaxR(100.);
-  fVertexer.setMaxChi2(10.);
+  //fVertexer.setMaxChi2(10.);
   o2::track::TrackParCov* helper[3] = {nullptr};
   for (int iT=0; iT < 3; iT++)
     helper[iT] = (o2::track::TrackParCov*)((AliExternalTrackParam*)kTrack[iT]);

@@ -28,6 +28,7 @@
 #include "AliAnalysisTaskSE.h"
 #include "AliEventCuts.h"
 #include "AliPID.h"
+#include "AliPIDResponse.h"
 #include "AliVertexerTracks.h"
 
 #include <TMath.h>
@@ -71,8 +72,13 @@ private:
 
   // Findable Tree
   AliESDtrack *fTreeHyp3BodyVarTracks[3]; //!
+  Int_t fTreeHyp3BodyVarPDGcodes[3];
   Float_t fTreeHyp3BodyVarNsigmaTPC[3];
   Float_t fTreeHyp3BodyVarNsigmaTOF[3];
+
+  ULong64_t fTreeHyp3BodyVarEventId;
+  Int_t fTreeHyp3BodyVarMotherId;
+  Bool_t fTreeHyp3BodyVarIsFakeCand;
 
   Float_t fTreeHyp3BodyVarTruePx;
   Float_t fTreeHyp3BodyVarTruePy;
@@ -94,8 +100,8 @@ private:
   TH1D *fHistEventCounter; //!
   TH1D *fHistCentrality;   //!
 
-  TH3D *fHistGeneratedPtVsYVsCentralityHypTrit;     //!
-  TH3D *fHistGeneratedPtVsYVsCentralityAntiHypTrit; //!
+  TH3D *fHistGeneratedPtVsCtVsCentralityHypTrit3;     //!
+  TH3D *fHistGeneratedPtVsCtVsCentralityAntiHypTrit3; //!
 
   /// \cond CLASSDEF
   ClassDef(AliAnalysisTaskFindableHypertriton3, 1); // analysisclass

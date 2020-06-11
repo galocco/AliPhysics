@@ -81,7 +81,7 @@ public:
   // Readers to access the data (delete the ones you do not need).
   TTreeReaderValue<AliESDtrack> fTreeHyp3BodyVarTracks[3] = {{fReader, "fTreeHyp3BodyVarTrack0"}, {fReader, "fTreeHyp3BodyVarTrack1"}, {fReader, "fTreeHyp3BodyVarTrack2"}};
 
-  TTreeReaderValue<Bool_t> fTreeHyp3BodyVarRefit[3] = {{fReader, "fTreeHyp3BodyVarRefit0"},{fReader, "fTreeHyp3BodyVarRefit1"},{fReader, "fTreeHyp3BodyVarRefit2"}};
+  TTreeReaderValue<Int_t> fTreeHyp3BodyVarPDGcodes[3] = {{fReader, "fTreeHyp3BodyVarPDGcode0"},{fReader, "fTreeHyp3BodyVarPDGcode1"},{fReader, "fTreeHyp3BodyVarPDGcode2"}};
 
   TTreeReaderValue<Float_t> fTreeHyp3BodyVarNsigmaTPC[3] = {{fReader, "fTreeHyp3BodyVarNsigmaTPC0"},{fReader, "fTreeHyp3BodyVarNsigmaTPC1"},{fReader, "fTreeHyp3BodyVarNsigmaTPC2"}};
 
@@ -90,6 +90,8 @@ public:
   TTreeReaderValue<ULong64_t> fTreeHyp3BodyVarEventId = {fReader, "fTreeHyp3BodyVarEventId"};
 
   TTreeReaderValue<Int_t> fTreeHyp3BodyVarMotherId= { fReader, "fTreeHyp3BodyVarMotherId"};
+
+  TTreeReaderValue<Bool_t> fTreeHyp3BodyVarIsFakeCand = {fReader, "fTreeHyp3BodyVarIsFakeCand"};
 
   TTreeReaderValue<AliESDVertex> fPrimaryVertex = {fReader, "fPrimaryVertex"};
 
@@ -137,8 +139,8 @@ public:
   unsigned long fLastEventId = 0ull;
   int fCurrentMotherId = -1;
   int fLastMotherId = -1;
-  bool fCurrentRefit = true;
   int fNclones = -1;
+  bool fFakeCand = false;
   int fNcycles = 0;
   int fNrec = 0;
   TH1D* fOperations = nullptr;
