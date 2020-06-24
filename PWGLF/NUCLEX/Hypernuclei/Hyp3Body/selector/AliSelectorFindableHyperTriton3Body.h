@@ -140,7 +140,7 @@ public:
   unsigned long fLastEventId = 0ull;
   int fCurrentMotherId = -1;
   int fLastMotherId = -1;
-  int fNclones = -1;
+  int fNclones[3][5];
   bool fFakeCand = false;
   int fNcycles = 0;
   int fNrec = 0;

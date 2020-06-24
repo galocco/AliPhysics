@@ -56,7 +56,7 @@ fRej{rej_function},
 fHypertritonVertexer(){
   fESDtrackCuts = AliESDtrackCuts::GetStandardV0DaughterCuts();
   fESDtrackCuts->SetMinNClustersTPC(0);
-  fESDtrackCuts->SetEtaRange(-1.,1.);
+  fESDtrackCuts->SetEtaRange(-0.9,0.9);
   //test to compare with the other selector
 
 }
@@ -282,18 +282,28 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
     fHistGen[lCharge]->Fill(lHypPtGen,lHypCtGen);
     fHistGenPt->Fill(lHypPtGen);
     if(fCurrentEventId != fLastEventId) 
-      fLastEventId = fCurrentEventId;
-    fNclones = 0;
+      fLastEventId = fCurrentEventId;   
+    for(int iCut=0; iCut<kNcuts; iCut++){
+      for(int iVar=0; iVar<kNvariations; iVar++)
+        fNclones[iCut][iVar] = 0;
+    }
+
   } else {
     if(fCurrentEventId != fLastEventId){
       fLastEventId = fCurrentEventId;
       fHistGen[lCharge]->Fill(lHypPtGen,lHypCtGen);
       fHistGenPt->Fill(lHypPtGen);
-      
-      fNclones = 0;
+      for(int iCut=0; iCut<kNcuts; iCut++){
+        for(int iVar=0; iVar<kNvariations; iVar++)
+          fNclones[iCut][iVar] = 0;
+      }
     }
   }
-  
+
+  if(fNcycles<200){
+    std::cout<<"ev: "<<fCurrentEventId<<std::endl;
+    std::cout<<"mo: "<<fCurrentMotherId<<" fake:"<<fFakeCand<<std::endl;
+  }
 
   //------------------------------------------------------------
   //                    Before selection
@@ -579,25 +589,21 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
     fHistCosPAngle[ctside]->Fill(cospa);
   if(cospa<0.99)
     return true;
-  if(lHypMassRec>3.08 || lHypMassRec<2.92)
-    return true;
 
   /// Efficiency histograms
-  int fOldClones = fNclones;
   for(int iCut=0; iCut<kNcuts; iCut++){
     for(int iVar=0; iVar<kNvariations; iVar++)
       if(AcceptCandidate(iVar,iCut)){
-        fNclones=fOldClones;
         if(fFakeCand){
           fHistFakeVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
           fHistInvMassPt[lCharge][1]->Fill(lHypMassRec,lHypPtRec);
         }
         else{
-          if(fNclones==0){
+          if(fNclones[iCut][iVar]==0){
             fHistSingleRecVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
             fHistResolutionVsCuts[iCut][lCharge]->Fill(lHypPtRec-lHypPtGen,lHypCtRec-lHypCtGen,iVar);         
             fHistInvMassPt[lCharge][0]->Fill(lHypMassRec,lHypPtRec);
-            fNclones++;
+            fNclones[iCut][iVar]++;
           }
           else{
             fHistClonesVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
@@ -605,7 +611,7 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
           }
         }
       }
-  }  
+  }
   return true;
 }
 
@@ -639,10 +645,6 @@ bool AliSelectorFindableHyperTriton3Body::AcceptCandidate(int iCut = 0, int iVar
   CutsSet[iVar] = iCut;
   float fTrackPtRange[3][2] = {{0.f, 7.f},{0.f, 4.f},{0.f, 1.f}};
   float dca[2];
-  const bool hasTOFout  = fTreeHyp3BodyVarTracks[0]->GetStatus() & AliVTrack::kTOFout;
-  const bool hasTOFtime = fTreeHyp3BodyVarTracks[0]->GetStatus() & AliVTrack::kTIME;
-
-  if(!(hasTOFout && hasTOFtime)) return false;
   for(int iTrack = 0; iTrack < 3; iTrack++){
     //NsigmaTPC
     //NsigmaTOF
@@ -650,16 +652,24 @@ bool AliSelectorFindableHyperTriton3Body::AcceptCandidate(int iCut = 0, int iVar
     //V0Daughter
     //de hasTOF
     //pt range
-    if(TMath::Abs(*fTreeHyp3BodyVarNsigmaTPC[iTrack]) > 4.) return false;
+    
+    bool hasTOFout  = fTreeHyp3BodyVarTracks[iTrack]->GetStatus() & AliVTrack::kTOFout;
+    bool hasTOFtime = fTreeHyp3BodyVarTracks[iTrack]->GetStatus() & AliVTrack::kTIME;
+    if(!(hasTOFout && hasTOFtime) && iTrack==0) return false;
+
+    if(hasTOFout && hasTOFtime && TMath::Abs(*fTreeHyp3BodyVarNsigmaTOF[iTrack]) > 4.) return false;
+    //if(hasTOFout && hasTOFtime && TMath::Abs(*fTreeHyp3BodyVarNsigmaTOF[iTrack]) > 4.) return false;
     //cut on dca
     fTreeHyp3BodyVarTracks[iTrack]->GetImpactParameters(dca[0], dca[1]);
     double dcaNorm = std::hypot(dca[0], dca[1]);
-    if(fTreeHyp3BodyVarTracks[iTrack]->Pt()>fTrackPtRange[iTrack][1] || fTreeHyp3BodyVarTracks[iTrack]->Pt()<fTrackPtRange[iTrack][0]) return false;
+    if(fTreeHyp3BodyVarTracks[iTrack]->Pt()>fTrackPtRange[iTrack][1]) return false;
+    //if(fNcycles<100)
+      //std::cout<<iTrack<<": "<<fTreeHyp3BodyVarTracks[iTrack]->Pt()<<std::endl;
     //if(dcaNorm<0.05) return false;
     if(!fESDtrackCuts->AcceptTrack(&*fTreeHyp3BodyVarTracks[iTrack])) return false;
     //cut on NsigmaTPC
     if(TMath::Abs(*fTreeHyp3BodyVarNsigmaTPC[iTrack]) >  3.) return false; // kCuts[0][CutsSet[0]][iTrack]) 
-    printf("% --",*fTreeHyp3BodyVarNsigmaTPC[iTrack]);
+    //std::cout<<*fTreeHyp3BodyVarNsigmaTPC[iTrack]<<std::endl;
     //cut on NclusterTPC
     if(fTreeHyp3BodyVarTracks[iTrack]->GetTPCNcls() < ClusterTPC[iTrack]) return false;
     //cut on NclusterITS
@@ -811,6 +821,10 @@ bool AliSelectorFindableHyperTriton3Body::O2Vertexer(AliESDtrack* kTrack [],RHyp
   recHyp.pt = hypertriton.pt();
   recHyp.p = hypertriton.P();
   recHyp.m = mass;
+
+  if(mass>3.06 || mass<2.94)
+    return true;
+
   recHyp.cosPA = hypertriton.Vect().Dot(decayl) / (totalMom * len);
 
   auto& deuPos = fVertexer.getTrackPos(0); 
