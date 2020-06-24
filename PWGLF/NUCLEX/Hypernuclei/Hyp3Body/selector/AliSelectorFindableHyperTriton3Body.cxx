@@ -455,7 +455,26 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
       dcaPP[0] = 10.*lCollection.deuteron.GetDistanceFromParticle(lCollection.proton);
       dcaPP[1] = 10.*lCollection.pion.GetDistanceFromParticle(lCollection.deuteron);
       dcaPP[2] = 10.*lCollection.pion.GetDistanceFromParticle(lCollection.proton);
+          
+      if (dcaPP[0] > 8.)
+        return true;
       
+      if (dcaPP[1] > 8.)
+        return true;
+      
+      if (dcaPP[2] > 8.)
+        return true;
+
+      if (dca[0] > 8.)
+        return true;
+      
+      if (dca[1] > 8.)
+        return true;
+      
+      if (dca[2] > 8.)
+        return true;
+
+  
       dcaXYpv[0] = 10.*lCollection.deuteron.GetDistanceFromVertexXY(pri_vertex);
       dcapv[0] = 10.*lCollection.deuteron.GetDistanceFromVertex(pri_vertex);
       dcaXYpv[1] = 10.*lCollection.proton.GetDistanceFromVertexXY(pri_vertex);
@@ -589,24 +608,26 @@ Bool_t AliSelectorFindableHyperTriton3Body::Process(Long64_t entry){
     fHistCosPAngle[ctside]->Fill(cospa);
   if(cospa<0.99)
     return true;
+  if(lHypMassRec>3.06 || lHypMassRec<2.94)
+    return true;)
 
   /// Efficiency histograms
   for(int iCut=0; iCut<kNcuts; iCut++){
     for(int iVar=0; iVar<kNvariations; iVar++)
       if(AcceptCandidate(iVar,iCut)){
         if(fFakeCand){
-          fHistFakeVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
+          fHistFakeVsCuts[iCut][lCharge]->Fill(lHypPtRec,lHypCtRec,iVar);
           fHistInvMassPt[lCharge][1]->Fill(lHypMassRec,lHypPtRec);
         }
         else{
           if(fNclones[iCut][iVar]==0){
-            fHistSingleRecVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
+            fHistSingleRecVsCuts[iCut][lCharge]->Fill(lHypPtRec,lHypCtRec,iVar);
             fHistResolutionVsCuts[iCut][lCharge]->Fill(lHypPtRec-lHypPtGen,lHypCtRec-lHypCtGen,iVar);         
             fHistInvMassPt[lCharge][0]->Fill(lHypMassRec,lHypPtRec);
             fNclones[iCut][iVar]++;
           }
           else{
-            fHistClonesVsCuts[iCut][lCharge]->Fill(lHypPtGen,lHypCtGen,iVar);
+            fHistClonesVsCuts[iCut][lCharge]->Fill(lHypPtRec,lHypCtRec,iVar);
             fHistInvMassPt[lCharge][2]->Fill(lHypMassRec,lHypPtRec);
           }
         }
@@ -663,6 +684,7 @@ bool AliSelectorFindableHyperTriton3Body::AcceptCandidate(int iCut = 0, int iVar
     fTreeHyp3BodyVarTracks[iTrack]->GetImpactParameters(dca[0], dca[1]);
     double dcaNorm = std::hypot(dca[0], dca[1]);
     if(fTreeHyp3BodyVarTracks[iTrack]->Pt()>fTrackPtRange[iTrack][1]) return false;
+    if(fTreeHyp3BodyVarTracks[iTrack]->Pt()<fTrackPtRange[iTrack][0]) return false;
     //if(fNcycles<100)
       //std::cout<<iTrack<<": "<<fTreeHyp3BodyVarTracks[iTrack]->Pt()<<std::endl;
     //if(dcaNorm<0.05) return false;
@@ -767,8 +789,23 @@ bool AliSelectorFindableHyperTriton3Body::KFVertexer(AliESDtrack* kTrack [], RPa
   float dca_de_pi = helper[0].GetDistanceFromParticle(helper[2]);
   float dca_pr_pi = helper[1].GetDistanceFromParticle(helper[2]);
 
-  //if(dca_de_pr > 2. || dca_de_pi > 2. || dca_pr_pi > 2.)
-    //return false;
+  if (dca_de_pr > 8.)
+    return true;
+  
+  if (dca_de_pi > 8.)
+    return true;
+  
+  if (dca_pr_pi > 8.)
+    return true;
+
+  if (recHyp.dca_de_sv > 8.)
+    return true;
+  
+  if (recHyp.dca_pr_sv > 8.)
+    return true;
+  
+  if (recHyp.dca_pi_sv > 8.)
+    return true;
   
   return true;
 }
@@ -821,9 +858,6 @@ bool AliSelectorFindableHyperTriton3Body::O2Vertexer(AliESDtrack* kTrack [],RHyp
   recHyp.pt = hypertriton.pt();
   recHyp.p = hypertriton.P();
   recHyp.m = mass;
-
-  if(mass>3.06 || mass<2.94)
-    return true;
 
   recHyp.cosPA = hypertriton.Vect().Dot(decayl) / (totalMom * len);
 
